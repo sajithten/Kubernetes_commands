@@ -1,3 +1,414 @@
+# Kubernetes Quick Reference (Interview + Real Use)
+
+---
+
+# 1. PODS
+
+## Use Case
+
+* Smallest deployable unit
+* Run single container (or tightly coupled containers)
+* Debugging, testing, temporary workloads
+
+## Commands
+
+```
+kubectl get pods
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+kubectl exec -it <pod-name> -- /bin/bash
+kubectl delete pod <pod-name>
+```
+
+## YAML (Basic)
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+```
+
+---
+
+# 2. DEPLOYMENTS
+
+## Use Case
+
+* Manage stateless apps
+* Rolling updates, rollback
+* Maintain desired state
+
+## Commands
+
+```
+kubectl get deployments
+kubectl describe deployment <name>
+kubectl rollout status deployment <name>
+kubectl rollout undo deployment <name>
+kubectl scale deployment <name> --replicas=3
+```
+
+## YAML
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+```
+
+---
+
+# 3. REPLICASET
+
+## Use Case
+
+* Ensure fixed number of pods
+* Usually managed by Deployment
+
+## Commands
+
+```
+kubectl get rs
+kubectl describe rs <name>
+```
+
+---
+
+# 4. HPA (Horizontal Pod Autoscaler)
+
+## Use Case
+
+* Auto scale pods based on CPU/Memory
+
+## Commands
+
+```
+kubectl get hpa
+kubectl autoscale deployment <name> --cpu-percent=50 --min=1 --max=5
+```
+
+## YAML
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-example
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-deploy
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+```
+
+---
+
+# 5. VPA (Vertical Pod Autoscaler)
+
+## Use Case
+
+* Adjust CPU/memory requests automatically
+
+## Commands
+
+```
+kubectl get vpa
+```
+
+## Note
+
+* Requires VPA controller installation
+* Not used with HPA in most production setups
+
+---
+
+# 6. SERVICES
+
+## Types + Use Case
+
+* ClusterIP → Internal communication
+* NodePort → Expose via node IP
+* LoadBalancer → External access (cloud)
+* Headless → Direct pod access
+
+## Commands
+
+```
+kubectl get svc
+kubectl describe svc <name>
+```
+
+## YAML
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+spec:
+  selector:
+    app: nginx
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+```
+
+---
+
+# 7. INGRESS
+
+## Use Case
+
+* HTTP/HTTPS routing
+* Path-based routing
+* Single entry point
+
+## Commands
+
+```
+kubectl get ingress
+kubectl describe ingress <name>
+```
+
+---
+
+# 8. CONFIGMAP
+
+## Use Case
+
+* Store non-sensitive config
+
+## Commands
+
+```
+kubectl get configmap
+kubectl create configmap my-config --from-literal=key=value
+```
+
+---
+
+# 9. SECRETS
+
+## Use Case
+
+* Store sensitive data (passwords, tokens)
+
+## Commands
+
+```
+kubectl get secrets
+kubectl create secret generic my-secret --from-literal=password=1234
+```
+
+---
+
+# 10. PV (Persistent Volume)
+
+## Use Case
+
+* Cluster-level storage
+
+## Commands
+
+```
+kubectl get pv
+```
+
+---
+
+# 11. PVC (Persistent Volume Claim)
+
+## Use Case
+
+* Request storage from PV
+
+## Commands
+
+```
+kubectl get pvc
+```
+
+## YAML
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+---
+
+# 12. NAMESPACE
+
+## Use Case
+
+* Logical separation (dev, qa, prod)
+
+## Commands
+
+```
+kubectl get ns
+kubectl create ns dev
+kubectl config set-context --current --namespace=dev
+```
+
+---
+
+# 13. DAEMONSET
+
+## Use Case
+
+* Run one pod per node
+* Monitoring agents (Prometheus, Fluentd)
+
+## Commands
+
+```
+kubectl get daemonset
+```
+
+---
+
+# 14. STATEFULSET
+
+## Use Case
+
+* Stateful apps (DB, Kafka)
+* Stable identity + storage
+
+## Commands
+
+```
+kubectl get statefulset
+```
+
+---
+
+# 15. JOB / CRONJOB
+
+## Use Case
+
+* Job → One-time execution
+* CronJob → Scheduled jobs
+
+## Commands
+
+```
+kubectl get jobs
+kubectl get cronjobs
+```
+
+---
+
+# TROUBLESHOOTING COMMANDS (CRITICAL)
+
+## Pod Issues
+
+```
+kubectl describe pod <pod>
+kubectl logs <pod>
+kubectl logs <pod> -c <container>
+kubectl get events
+```
+
+## Debugging
+
+```
+kubectl exec -it <pod> -- /bin/sh
+kubectl top pod
+kubectl top node
+```
+
+## Networking Issues
+
+```
+kubectl get svc
+kubectl get endpoints
+kubectl port-forward pod/<pod> 8080:80
+```
+
+## Deployment Issues
+
+```
+kubectl rollout status deployment <name>
+kubectl rollout history deployment <name>
+```
+
+## Node Issues
+
+```
+kubectl get nodes
+kubectl describe node <node>
+```
+
+## Force Delete
+
+```
+kubectl delete pod <pod> --force --grace-period=0
+```
+
+---
+
+# HIGH-VALUE INTERVIEW INSIGHT
+
+* Pod crash → check logs + events
+* Service not working → check endpoints
+* Deployment not updating → check rollout
+* HPA not scaling → metrics-server issue
+* PVC pending → storage class / PV issue
+
+---
+
+# MENTAL MODEL
+
+* Pod = runtime
+* Deployment = controller
+* Service = networking
+* PVC = storage
+* HPA = scaling
+* Ingress = external routing
+
+---
+
+
+
+
 
 ## 30 Kubernetes commands you must know: 
 
